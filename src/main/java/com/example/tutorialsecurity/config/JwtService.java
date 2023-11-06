@@ -18,8 +18,12 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    // @Value("${application.security.jwt.secret-key}")
-    private static final String SECRET_KEY = "E6A7D8C018DA67C113E4B40E29A291A7E67174A942E2F0A4A03446997DAECE58";
+    @Value("${application.security.jwt.secret-key}")
+    private String secret;
+    @Value("${application.security.jwt.expiration}")
+    private long jwtExpiration;
+    @Value("${application.security.jwt.refresh-token.expiration}")
+    private long refreshExpiration;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -49,24 +53,24 @@ public class JwtService {
                 .compact();
     }
 
-    // public String generateRefreshToken(
-    // UserDetails userDetails) {
-    // return buildToken(new HashMap<>(), userDetails, refreshExpiration);
-    // }
+    public String generateRefreshToken(
+            UserDetails userDetails) {
+        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+    }
 
-    // private String buildToken(
-    // Map<String, Object> extraClaims,
-    // UserDetails userDetails,
-    // long expiration) {
-    // return Jwts
-    // .builder()
-    // .setClaims(extraClaims)
-    // .setSubject(userDetails.getUsername())
-    // .setIssuedAt(new Date(System.currentTimeMillis()))
-    // .setExpiration(new Date(System.currentTimeMillis() + expiration))
-    // .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-    // .compact();
-    // }
+    private String buildToken(
+            Map<String, Object> extraClaims,
+            UserDetails userDetails,
+            long expiration) {
+        return Jwts
+                .builder()
+                .setClaims(extraClaims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
@@ -91,7 +95,7 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
